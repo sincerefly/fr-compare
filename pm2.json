@@ -1,0 +1,12 @@
+{
+  "name": "fr-compare",
+  "script": "fr-compare-2.0.py",
+  "instances": "1",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "env_production" : {
+    "NODE_ENV": "production"
+  }
+}
+
