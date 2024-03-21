@@ -7,8 +7,6 @@ from datetime import timedelta
 import face_recognition
 from io import BytesIO
 from PIL import Image
-import numpy as np
-import requests
 import base64
 import time
 import json
@@ -34,9 +32,9 @@ def crossdomain(origin=None, methods=None, headers=None,
                 automatic_options=True):
     if methods is not None:
         methods = ', '.join(sorted(x.upper() for x in methods))
-    if headers is not None and not isinstance(headers, basestring):
+    if headers is not None and not isinstance(headers, str):
         headers = ', '.join(x.upper() for x in headers)
-    if not isinstance(origin, basestring):
+    if not isinstance(origin, str):
         origin = ', '.join(origin)
     if isinstance(max_age, timedelta):
         max_age = max_age.total_seconds()
@@ -120,7 +118,7 @@ def detect_it(b64_image):
     pil_image.save(buffer, format="JPEG")
 
     encoded_string = base64.b64encode(buffer.getvalue())
-    return encoded_string
+    return encoded_string.decode('utf-8')
 
 
 def compare_face(b64_image_01, b64_image_02):
@@ -149,7 +147,7 @@ def detect():
         except Exception as err:
             data = { "b64_image": "", "message": "please post data with json encode string and setting json header" }
             return jsonify(data)
-        if not resp_data.has_key("b64_image"):
+        if "b64_image" not in resp_data:
             return jsonify({ "b64_image": "", "message": "'b64_image' argument not found" })
         try:
             photo = detect_it(resp_data['b64_image'])
@@ -163,7 +161,7 @@ def detect():
             else:
                 data = { "b64_image": "", "message": "face not found" }
         finally:
-            resp = make_response(jsonify(data))
+            resp = make_response(json.dumps(data))
 
             return resp
 

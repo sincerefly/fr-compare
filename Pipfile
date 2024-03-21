@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+verify_ssl = true
+name = "pypitunatsinghuaedu"
+
+[packages]
+flask = "*"
+gevent = "*"
+face-recognition = "*"
+
+[dev-packages]
+
+[requires]
+python_version = ">=3.7"
