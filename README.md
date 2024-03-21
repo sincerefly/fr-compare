@@ -2,14 +2,31 @@
 
 封装 [face_recognition](https://github.com/ageitgey/face_recognition) 制作成Docker，提供裁剪人像与人像比对相似度两个接口
 
+## Quick Start
+
+安装依赖前确认本机环境已安装 gcc，设置环境变量参考: [README_Simplified_Chinese.md](https://github.com/ageitgey/face_recognition/blob/master/README_Simplified_Chinese.md)
+
+```bash
+# 安装依赖
+$ pipenv --python 3.12
+$ pipenv shell
+$ pipenv install
+
+# 运行
+$ python3 fr-compare-2.0.py
+* Detect or Compare with Fr_py, Server 2.0
+* Running on http://0.0.0.0:8726/detect
+* Running on http://0.0.0.0:8726/compare (Press CTRL+C to quit)
+```
+
 ## Usage
 
-```
+```bash
 # 构建镜像
-sudo docker build -t fr-compare:2.0.0 .
+$ sudo docker build -t fr-compare:2.0.0 .
 
 # 启动容器
-sudo docker run --restart=always --name fr-compare -d -p 8726:8726 fr-compare:2.0.0
+$ sudo docker run --restart=always --name fr-compare -d -p 8726:8726 fr-compare:2.0.0
 ```
 
 访问http://[your-server-ip]:8726, 页面输出
