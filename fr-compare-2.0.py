@@ -162,7 +162,6 @@ def detect():
 
         try:
             resp_data = request.get_json()
-            # print(resp_data['b64_image'])
         except Exception as err:
             print(err)
             data = {
