@@ -32,5 +32,3 @@ RUN ls -al -R
 CMD [ "pm2-runtime", "start", "pm2.json" ]
 
 EXPOSE 8726
-
-

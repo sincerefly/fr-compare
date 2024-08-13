@@ -93,4 +93,3 @@ http://[your-server-ip]:8722/detect （POST）
 ```
 
 distance 值越高，两张照片为一个人的概率越大
-

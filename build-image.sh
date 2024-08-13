@@ -23,5 +23,3 @@ sudo docker save fr-compare:$version > fr-compare-$version.tar
 echo "[4/4] compression image"
 tar zcvf fr-compare-"$version".tar.bz2 fr-compare-"$version".tar
 echo "[info] build success"
-
-

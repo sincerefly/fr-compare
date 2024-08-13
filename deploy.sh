@@ -20,6 +20,3 @@ sudo docker load --input fr-compare-$version.tar
 echo "[4/4] start image"
 sudo docker run --restart=always --name fr-compare -d -p 8726:8726 fr-compare:$version
 echo "[info] deploy success"
-
-
-

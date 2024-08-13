@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from flask import Flask, request, jsonify, make_response, current_app
-from functools import update_wrapper
-from gevent.pywsgi import WSGIServer
-from datetime import timedelta
-import face_recognition
-from io import BytesIO
-from PIL import Image
 import base64
-import time
 import json
+import time
+from datetime import timedelta
+from functools import update_wrapper
+from io import BytesIO
+
+import face_recognition
+from flask import Flask, current_app, jsonify, make_response, request
+from gevent.pywsgi import WSGIServer
+from PIL import Image
 
 #
 # 监听 :8726/detect(POST) 接口使用 face_recognition 裁剪人脸
@@ -18,24 +19,33 @@ import json
 
 app = Flask(__name__)
 
+
 def after_request(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = (
+        "Content-Type,Authorization"
+    )
     return response
+
 
 app.after_request(after_request)
 
 
-def crossdomain(origin=None, methods=None, headers=None,
-                max_age=21600, attach_to_all=True,
-                automatic_options=True):
+def crossdomain(
+    origin=None,
+    methods=None,
+    headers=None,
+    max_age=21600,
+    attach_to_all=True,
+    automatic_options=True,
+):
     if methods is not None:
-        methods = ', '.join(sorted(x.upper() for x in methods))
+        methods = ", ".join(sorted(x.upper() for x in methods))
     if headers is not None and not isinstance(headers, str):
-        headers = ', '.join(x.upper() for x in headers)
+        headers = ", ".join(x.upper() for x in headers)
     if not isinstance(origin, str):
-        origin = ', '.join(origin)
+        origin = ", ".join(origin)
     if isinstance(max_age, timedelta):
         max_age = max_age.total_seconds()
 
@@ -44,44 +54,46 @@ def crossdomain(origin=None, methods=None, headers=None,
             return methods
 
         options_resp = current_app.make_default_options_response()
-        return options_resp.headers['allow']
+        return options_resp.headers["allow"]
 
     def decorator(f):
         def wrapped_function(*args, **kwargs):
-            if automatic_options and request.method == 'OPTIONS':
+            if automatic_options and request.method == "OPTIONS":
                 resp = current_app.make_default_options_response()
             else:
                 resp = make_response(f(*args, **kwargs))
-            if not attach_to_all and request.method != 'OPTIONS':
+            if not attach_to_all and request.method != "OPTIONS":
                 return resp
 
             h = resp.headers
 
-            h['Access-Control-Allow-Origin'] = origin
-            h['Access-Control-Allow-Methods'] = get_methods()
-            h['Access-Control-Max-Age'] = str(max_age)
+            h["Access-Control-Allow-Origin"] = origin
+            h["Access-Control-Allow-Methods"] = get_methods()
+            h["Access-Control-Max-Age"] = str(max_age)
             if headers is not None:
-                h['Access-Control-Allow-Headers'] = headers
+                h["Access-Control-Allow-Headers"] = headers
             else:
-                h['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+                h["Access-Control-Allow-Headers"] = (
+                    "Content-Type,Authorization"
+                )
             return resp
 
         f.provide_automatic_options = False
         return update_wrapper(wrapped_function, f)
+
     return decorator
 
 
 def detect_it(b64_image):
-    '''
+    """
     使用 face_recognition 截取头像
-    '''
+    """
 
-    #image = face_recognition.load_image_file("origin.png")
+    # image = face_recognition.load_image_file("origin.png")
     bytes_img = BytesIO(base64.b64decode(b64_image))
 
     im = Image.open(bytes_img)
     width, height = im.size
-
 
     image = face_recognition.load_image_file(bytes_img)
 
@@ -98,7 +110,12 @@ def detect_it(b64_image):
 
         # Print the location of each face in this image
         top, right, bottom, left = face_location
-        print("A face is located at pixel location Top: {}, Left: {}, Bottom: {}, Right: {}".format(top, left, bottom, right))
+        print(
+            "A face is located at pixel location "
+            "Top: {}, Left: {}, Bottom: {}, Right: {}".format(
+                top, left, bottom, right
+            )
+        )
 
         if (bottom - top) * (right - left) > face_size:
             face = (top, right, bottom, left)
@@ -118,7 +135,7 @@ def detect_it(b64_image):
     pil_image.save(buffer, format="JPEG")
 
     encoded_string = base64.b64encode(buffer.getvalue())
-    return encoded_string.decode('utf-8')
+    return encoded_string.decode("utf-8")
 
 
 def compare_face(b64_image_01, b64_image_02):
@@ -132,103 +149,134 @@ def compare_face(b64_image_01, b64_image_02):
     known_encoding = face_recognition.face_encodings(known_image)[0]
     unknown_encoding = face_recognition.face_encodings(unknown_image)[0]
 
-    distance = face_recognition.face_distance([known_encoding], unknown_encoding)
+    distance = face_recognition.face_distance(
+        [known_encoding], unknown_encoding
+    )
     return distance
 
 
-@app.route('/detect', methods=['GET', 'POST', 'OPTIONS'])
-@crossdomain(origin='*')
+@app.route("/detect", methods=["GET", "POST", "OPTIONS"])
+@crossdomain(origin="*")
 def detect():
-    if request.method == 'POST':
+    if request.method == "POST":
 
         try:
             resp_data = request.get_json()
             # print(resp_data['b64_image'])
         except Exception as err:
-            data = { "b64_image": "", "message": "please post data with json encode string and setting json header" }
+            print(err)
+            data = {
+                "b64_image": "",
+                "message": "please post data with json encode string and"
+                " setting json header",
+            }
             return jsonify(data)
         if "b64_image" not in resp_data:
-            return jsonify({ "b64_image": "", "message": "'b64_image' argument not found" })
+            return jsonify(
+                {"b64_image": "", "message": "'b64_image' argument not found"}
+            )
         try:
-            photo = detect_it(resp_data['b64_image'])
+            photo = detect_it(resp_data["b64_image"])
 
         except Exception as err:
             print(err)
-            data = { "b64_image": "", "message": "server error" }
+            data = {"b64_image": "", "message": "server error"}
         else:
             if photo:
-                data = { "b64_image": photo, "message": "success" }
+                data = {"b64_image": photo, "message": "success"}
             else:
-                data = { "b64_image": "", "message": "face not found" }
+                data = {"b64_image": "", "message": "face not found"}
         finally:
             resp = make_response(json.dumps(data))
 
             return resp
 
     else:
-        return '''请使用Post方式传递数据<br><br>
+        return """请使用Post方式传递数据<br><br>
                   请求头<br>
                   'Content-Type': 'application/json'
                   <br><br>
                   请求体<br>
                   {<br>
-                  &nbsp;&nbsp;"b64_image": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQEC..."<br>
+                  &nbsp;&nbsp;"b64_image": "/9j/4AAQSkZJRg..."<br>
                   }<br>
                   <br>
                   回复内容<br>
                   {<br>
-                  &nbsp;&nbsp;"b64_image": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQEC...", "message": "success" <br>
+                  &nbsp;&nbsp;"b64_image": "/9j/4AAQSkZJRg...",
+                  "message": "success" <br>
                   }<br>
                   <br>
-                  返回的 b64_image 为裁剪后的头像数据, message 为 "succcess" 时为截取头像成功, 否则为报错信息, b64_image 为空字符串
-               '''
+                  返回的 b64_image 为裁剪后的头像数据, message 为 "succcess" 时为截取头像成功,
+                  否则为报错信息, b64_image 为空字符串
+               """
 
 
-@app.route('/compare', methods=['GET', 'POST', 'OPTIONS'])
-@crossdomain(origin='*')
+@app.route("/compare", methods=["GET", "POST", "OPTIONS"])
+@crossdomain(origin="*")
 def compare():
     t1 = time.time()
 
-    if request.method == 'POST':
+    if request.method == "POST":
         json_data = request.get_json()
         # print(json_data)
-        b64_image_01 = json_data['b64_image_01']
-        b64_image_02 = json_data['b64_image_02']
+        b64_image_01 = json_data["b64_image_01"]
+        b64_image_02 = json_data["b64_image_02"]
 
         try:
             distance = compare_face(b64_image_01, b64_image_02)
         except IndexError as err:
+            print(err)
             t2 = time.time()
-            use_time = str(round(t2-t1, 2)) + 's'
-            return jsonify({ "message": "face not found", "distance": "0.0", "use_time": use_time})
+            use_time = str(round(t2 - t1, 2)) + "s"
+            return jsonify(
+                {
+                    "message": "face not found",
+                    "distance": "0.0",
+                    "use_time": use_time,
+                }
+            )
         except Exception as err:
             print(err)
             t2 = time.time()
-            use_time = str(round(t2-t1, 2)) + 's'
-            return jsonify({ "message": "unknow error", "distance": "0.0", "use_time": use_time})
+            use_time = str(round(t2 - t1, 2)) + "s"
+            return jsonify(
+                {
+                    "message": "unknow error",
+                    "distance": "0.0",
+                    "use_time": use_time,
+                }
+            )
 
-        distance_string = str(round((1-distance[0]) * 100, 2))
-        print(json.dumps({ "message": "ok", "distance": distance_string}))
+        distance_string = str(round((1 - distance[0]) * 100, 2))
+        print(json.dumps({"message": "ok", "distance": distance_string}))
         t2 = time.time()
-        use_time = str(round(t2-t1, 2)) + 's'
-        resp = make_response(jsonify({ "message": "ok", "distance": distance_string, "use_time": use_time}))
+        use_time = str(round(t2 - t1, 2)) + "s"
+        resp = make_response(
+            jsonify(
+                {
+                    "message": "ok",
+                    "distance": distance_string,
+                    "use_time": use_time,
+                }
+            )
+        )
         return resp
 
     else:
-        return '''请使用Post方式传递数据<br><br>'''
+        return """请使用Post方式传递数据<br><br>"""
 
 
-@app.route('/', methods=['GET'])
-@crossdomain(origin='*')
+@app.route("/", methods=["GET"])
+@crossdomain(origin="*")
 def welcome():
-    return jsonify({ "message": "face_recognition server 2.0", "code": 200 })
+    return jsonify({"message": "face_recognition server 2.0", "code": 200})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    http_server = WSGIServer(('0.0.0.0', 8726), app)
+    http_server = WSGIServer(("0.0.0.0", 8726), app)
     print("* Detect or Compare with Fr_py, Server 2.0")
     print("* Running on http://0.0.0.0:8726/detect")
     print("* Running on http://0.0.0.0:8726/compare (Press CTRL+C to quit)")
     http_server.serve_forever()
-
